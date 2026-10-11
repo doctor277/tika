@@ -1,0 +1,80 @@
+package org.apache.tika.digest;
+
+import org.apache.tika.digest.Encoder;
+import org.apache.tika.digest.InputStreamDigester;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParseContext;
+import java.io.ByteArrayInputStream;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
+import java.util.Map;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.security.Provider;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.tika.metadata.Property;
+import org.apache.tika.utils.StringUtils;
+
+public class InputStreamDigester_digest_3_1_Test {
+
+    private static final String TEST_ALGORITHM = "SHA-256";
+
+    private static final String TEST_METADATA_KEY = "digest";
+
+    private static final String TEST_METADATA_VALUE = "test-digest";
+
+    private static final String TEST_CONTENT = "test-content";
+
+    private static final Encoder TEST_ENCODER = new Encoder() {
+
+        @Override
+        public String encode(byte[] bytes) {
+            return "test-encoded-digest";
+        }
+    };
+
+    private static final Metadata TEST_METADATA = new Metadata();
+
+    private static final ParseContext TEST_PARSE_CONTEXT = new ParseContext();
+
+    private static final TikaInputStream TEST_TIKA_INPUT_STREAM = new TikaInputStream(new ByteArrayInputStream(TEST_CONTENT.getBytes()), TEST_CONTENT.length());
+
+    @Test
+    public void testDigest() throws IOException, NoSuchAlgorithmException {
+        InputStreamDigester digester = new InputStreamDigester(TEST_ALGORITHM, TEST_METADATA_KEY, TEST_ENCODER);
+        digester.digest(TEST_TIKA_INPUT_STREAM, TEST_METADATA, TEST_PARSE_CONTEXT);
+        assertEquals(TEST_ENCODER.encode(MessageDigest.getInstance(TEST_ALGORITHM).digest(TEST_CONTENT.getBytes())), TEST_METADATA.get(TEST_METADATA_KEY));
+    }
+
+    @Test
+    public void testDigestWithNullMetadata() throws IOException, NoSuchAlgorithmException {
+        InputStreamDigester digester = new InputStreamDigester(TEST_ALGORITHM, TEST_METADATA_KEY, TEST_ENCODER);
+        digester.digest(TEST_TIKA_INPUT_STREAM, null, TEST_PARSE_CONTEXT);
+        assertEquals(TEST_ENCODER.encode(MessageDigest.getInstance(TEST_ALGORITHM).digest(TEST_CONTENT.getBytes())), TEST_METADATA.get(TEST_METADATA_KEY));
+    }
+
+    @Test
+    public void testDigestWithNullParseContext() throws IOException, NoSuchAlgorithmException {
+        InputStreamDigester digester = new InputStreamDigester(TEST_ALGORITHM, TEST_METADATA_KEY, TEST_ENCODER);
+        digester.digest(TEST_TIKA_INPUT_STREAM, TEST_METADATA, null);
+        assertEquals(TEST_ENCODER.encode(MessageDigest.getInstance(TEST_ALGORITHM).digest(TEST_CONTENT.getBytes())), TEST_METADATA.get(TEST_METADATA_KEY));
+    }
+
+    @Test
+    public void testDigestWithNullEncoder() throws IOException, NoSuchAlgorithmException {
+        InputStreamDigester digester = new InputStreamDigester(TEST_ALGORITHM, TEST_METADATA_KEY, null);
+        digester.digest(TEST_TIKA_INPUT_STREAM, TEST_METADATA, TEST_PARSE_CONTEXT);
+    }
+}
+
+--------------------------------------------
+Error in InputStreamDigester_digest_3_1_Test: line 16 : package org.mockito does not exist
+Error in InputStreamDigester_digest_3_1_Test: line 19 : package org.mockito.junit.jupiter does not exist
+Error in InputStreamDigester_digest_3_1_Test: line 14 : package org.mockito does not exist

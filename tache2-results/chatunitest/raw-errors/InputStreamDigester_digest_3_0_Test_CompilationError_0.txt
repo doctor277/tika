@@ -1,0 +1,86 @@
+package org.apache.tika.digest;
+
+import org.apache.tika.digest.Encoder;
+import org.apache.tika.digest.InputStreamDigester;
+import org.apache.tika.io.TikaInputStream;
+import org.apache.tika.metadata.Metadata;
+import org.apache.tika.parser.ParseContext;
+import java.io.IOException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Map;
+import org.mockito.*;
+import org.junit.jupiter.api.*;
+import static org.mockito.Mockito.*;
+import static org.junit.jupiter.api.Assertions.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.junit.jupiter.MockitoExtension;
+import java.security.Provider;
+import java.util.concurrent.ConcurrentHashMap;
+import org.apache.tika.metadata.Property;
+import org.apache.tika.utils.StringUtils;
+
+public class InputStreamDigester_digest_3_0_Test {
+
+    @Mock
+    private Encoder encoder;
+
+    @Mock
+    private ParseContext parseContext;
+
+    @Mock
+    private Metadata metadata;
+
+    @Mock
+    private TikaInputStream tikaInputStream;
+
+    @Mock
+    private MessageDigest messageDigest;
+
+    @Mock
+    private Map<String, Property> metadataKeyProperties;
+
+    @BeforeEach
+    public void setUp() {
+        MockitoAnnotations.openMocks(this);
+        when(metadataKeyProperties.computeIfAbsent(Mockito.anyString(), Mockito.any())).thenReturn(Property.internalText("test"));
+        when(tikaInputStream.enableRewind()).thenReturn(tikaInputStream);
+        when(tikaInputStream.read(Mockito.any(byte[].class), Mockito.anyInt(), Mockito.anyInt())).thenReturn(10);
+        when(tikaInputStream.newMessageDigest()).thenReturn(messageDigest);
+        when(messageDigest.digest()).thenReturn(new byte[] { 1, 2, 3, 4, 5 });
+        when(metadata.get(Mockito.anyString())).thenReturn(null);
+        when(metadata.set(Mockito.anyString(), Mockito.anyString())).thenReturn(metadata);
+        when(parseContext.getJsonConfigs()).thenReturn(Map.of());
+        when(parseContext.getContextMap()).thenReturn(Map.of());
+    }
+
+    @Test
+    public void testDigest() throws IOException {
+        InputStreamDigester digester = new InputStreamDigester("algorithm", "metadataKey", encoder);
+        digester.digest(tikaInputStream, metadata, parseContext);
+        assertEquals("AQIDBAU=", metadata.get("test"));
+    }
+}
+
+--------------------------------------------
+Error in InputStreamDigester_digest_3_0_Test: line 14 : package org.mockito does not exist
+Error in InputStreamDigester_digest_3_0_Test: line 17 : package org.mockito.junit.jupiter does not exist
+Error in InputStreamDigester_digest_3_0_Test: line 12 : package org.mockito does not exist
+Error in InputStreamDigester_digest_3_0_Test: line 25 : cannot find symbol
+  symbol:   class Mock
+  location: class org.apache.tika.digest.InputStreamDigester_digest_3_0_Test
+Error in InputStreamDigester_digest_3_0_Test: line 28 : cannot find symbol
+  symbol:   class Mock
+  location: class org.apache.tika.digest.InputStreamDigester_digest_3_0_Test
+Error in InputStreamDigester_digest_3_0_Test: line 31 : cannot find symbol
+  symbol:   class Mock
+  location: class org.apache.tika.digest.InputStreamDigester_digest_3_0_Test
+Error in InputStreamDigester_digest_3_0_Test: line 34 : cannot find symbol
+  symbol:   class Mock
+  location: class org.apache.tika.digest.InputStreamDigester_digest_3_0_Test
+Error in InputStreamDigester_digest_3_0_Test: line 37 : cannot find symbol
+  symbol:   class Mock
+  location: class org.apache.tika.digest.InputStreamDigester_digest_3_0_Test
+Error in InputStreamDigester_digest_3_0_Test: line 40 : cannot find symbol
+  symbol:   class Mock
+  location: class org.apache.tika.digest.InputStreamDigester_digest_3_0_Test

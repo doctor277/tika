@@ -166,6 +166,28 @@
           </annotationProcessorPaths>
         </configuration>
       </plugin>
+      <!-- Local-only test generation for IFT3913 Tache 2. The plugin is invoked
+           explicitly and uses the OpenAI-compatible Ollama endpoint below. -->
+      <plugin>
+        <groupId>io.github.zju-aces-ise</groupId>
+        <artifactId>chatunitest-maven-plugin</artifactId>
+        <version>2.1.1</version>
+        <configuration>
+          <apiKeys>ollama</apiKeys>
+          <model>codeqwen:v1.5-chat</model>
+          <url>http://127.0.0.1:11434/v1/chat/completions</url>
+          <selectClass>org.apache.tika.digest.InputStreamDigester</selectClass>
+          <testNumber>1</testNumber>
+          <maxRounds>3</maxRounds>
+          <temperature>0.2</temperature>
+          <thread>false</thread>
+          <stopWhenSuccess>true</stopWhenSuccess>
+          <noExecution>false</noExecution>
+          <merge>true</merge>
+          <tmpOutput>${project.build.directory}/chatunitest-info</tmpOutput>
+          <testOutput>${project.basedir}/chatunitest</testOutput>
+        </configuration>
+      </plugin>
       <plugin>
         <groupId>org.apache.felix</groupId>
         <artifactId>maven-bundle-plugin</artifactId>
@@ -271,6 +293,37 @@
             </goals>
           </execution>
         </executions>
+      </plugin>
+      <!-- Mutation analysis is intentionally scoped to the selected assignment
+           class so that local runs and CI remain deterministic and affordable. -->
+      <plugin>
+        <groupId>org.pitest</groupId>
+        <artifactId>pitest-maven</artifactId>
+        <version>1.30.0</version>
+        <dependencies>
+          <dependency>
+            <groupId>org.pitest</groupId>
+            <artifactId>pitest-junit5-plugin</artifactId>
+            <version>1.2.3</version>
+          </dependency>
+        </dependencies>
+        <configuration>
+          <targetClasses>
+            <param>org.apache.tika.digest.InputStreamDigester</param>
+          </targetClasses>
+          <targetTests>
+            <param>org.apache.tika.digest.InputStreamDigester*</param>
+          </targetTests>
+          <outputFormats>
+            <param>HTML</param>
+            <param>XML</param>
+          </outputFormats>
+          <timestampedReports>false</timestampedReports>
+          <threads>1</threads>
+          <mutationThreshold>100</mutationThreshold>
+          <coverageThreshold>100</coverageThreshold>
+          <timeoutConstant>10000</timeoutConstant>
+        </configuration>
       </plugin>
       <plugin>
         <!-- consider moving the test framework to another regular package -->

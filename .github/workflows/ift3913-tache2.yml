@@ -1,0 +1,52 @@
+name: IFT3913 Tache 2
+
+on:
+  push:
+    branches:
+      - ift3913-tache2
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  input-stream-digester:
+    name: Tests et mutation (Java 17, Ubuntu)
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - name: Recuperer le depot
+        uses: actions/checkout@v7
+
+      - name: Configurer Java 17 et le cache Maven
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: maven
+
+      - name: Installer les modules requis dans le depot Maven local
+        run: ./mvnw -B -ntp -pl tika-core -am -DskipTests install
+
+      - name: Executer les tests originaux, generes et supplementaires
+        run: >-
+          ./mvnw -B -ntp -pl tika-core -am
+          '-Dtest=org.apache.tika.digest.InputStreamDigester*'
+          '-Dsurefire.failIfNoSpecifiedTests=false' test
+
+      - name: Executer PIT avec les seuils finaux
+        working-directory: tika-core
+        run: ../mvnw -B -ntp org.pitest:pitest-maven:1.30.0:mutationCoverage
+
+      - name: Publier les rapports de tests et de couverture
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: input-stream-digester-reports
+          if-no-files-found: warn
+          path: |
+            tika-core/target/surefire-reports/
+            tika-core/target/site/jacoco/
+            tika-core/target/pit-reports/
