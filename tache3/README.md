@@ -10,7 +10,7 @@ Le workflow [`.github/workflows/ift3913-tache3.yml`](../.github/workflows/ift391
 
 Le script [`compare_semgrep.py`](../scripts/ift3913_tache3/compare_semgrep.py) compare chaque résultat au [rapport de référence](../tache3-results/baseline/custom.json) par identifiant de règle, chemin, ligne et colonne. Il retourne 0 si aucun résultat nouveau n'apparaît, 1 s'il en apparaît et 2 si un rapport est invalide. Les erreurs de Semgrep sont bloquantes. Les rapports sont téléversés même lorsque le job échoue. Cette référence est volontairement fixe : elle représente l'état avant les sept ajouts. Un simple déplacement de ligne peut être signalé comme nouveau résultat; le rapport doit alors être examiné avant de modifier la référence. Nous ne mettons pas automatiquement la référence à jour, car cela masquerait une régression.
 
-La validation locale du comparateur a donné `0 → 0`, code de sortie **0**, puis `0 → 7`, code de sortie **1**. Ainsi, le job avec les sept exemples doit échouer à l'étape de comparaison; cet échec est la démonstration attendue de la porte de sécurité, pas un échec des tests Java. Le comportement de GitHub Actions doit être confirmé par un vrai run après publication de la branche; un résultat local ne prouve pas à lui seul le résultat distant.
+La validation locale du comparateur a donné `0 → 0`, code de sortie **0**, puis `0 → 7`, code de sortie **1**. Sur GitHub, le [run de référence](https://github.com/doctor277/tika/actions/runs/44130166550) a réussi : six tests sur six, zéro résultat Semgrep, comparaison réussie et rapport téléversé. Le [run après ajout](https://github.com/doctor277/tika/actions/runs/44130654455) a passé les six tests, puis a détecté sept nouveaux résultats; il a échoué précisément à l'étape de comparaison avec le code 1 et a téléversé le rapport. Cet échec est la démonstration attendue de la porte de sécurité.
 
 Si l'étape JUnit échoue, le workflow invoque l'[action composite réutilisable](../.github/actions/tache3-rickroll/action.yml). Elle affiche le lien vers *Never Gonna Give You Up* dans une annotation et dans le résumé du job. Sa condition porte précisément sur l'échec de l'étape JUnit; un échec Semgrep seul ne déclenche pas le rickroll. Les tests ne sont pas rendus artificiellement rouges.
 
@@ -20,13 +20,13 @@ Les sept exemples sont réunis dans [`Tache3SecurityExamples.java`](../tika-core
 
 | Type | Méthode | Pourquoi le code est vulnérable | Règle et ligne du résultat |
 |---|---|---|---|
-| XXE (CWE-611) | `parseUntrustedXml` | Autorise explicitement les déclarations DOCTYPE et les entités externes pour un XML fourni par l'appelant. | `ift3913-t3-xxe`, ligne 53 |
-| Traversée de chemin (CWE-22) | `readRelativeFile` | Résout un nom fourni par l'appelant sous un répertoire sans vérifier que le chemin normalisé y reste. | `ift3913-t3-path-traversal`, ligne 59 |
-| Exécution de commande (CWE-78) | `runTool` | Transmet directement la commande fournie par l'appelant à `Runtime.exec`, sans liste de commandes permises. | `ift3913-t3-command-injection`, ligne 63 |
-| Injection SQL (CWE-89) | `lookupRecord` | Concatène le nom fourni par l'appelant dans la requête au lieu d'utiliser un paramètre SQL. | `ift3913-t3-sql-injection`, ligne 68 |
-| Désérialisation non fiable (CWE-502) | `restoreObject` | Lit un objet Java depuis un flux fourni par l'appelant sans filtre de types. | `ift3913-t3-deserialization`, ligne 78 |
-| Chiffrement ECB (CWE-327) | `encryptBlocks` | Utilise AES/ECB, qui révèle l'égalité des blocs de texte clair. | `ift3913-t3-ecb`, ligne 86 |
-| HTTP en clair (CWE-319) | `fetchConfiguration` | Récupère une configuration via HTTP, exposée à la lecture et à la modification en transit. | `ift3913-t3-cleartext-http`, ligne 92 |
+| XXE (CWE-611) | `parseUntrustedXml` | Autorise explicitement les déclarations DOCTYPE et les entités externes pour un XML fourni par l'appelant. | `ift3913-t3-xxe`, ligne 52 |
+| Traversée de chemin (CWE-22) | `readRelativeFile` | Résout un nom fourni par l'appelant sous un répertoire sans vérifier que le chemin normalisé y reste. | `ift3913-t3-path-traversal`, ligne 58 |
+| Exécution de commande (CWE-78) | `runTool` | Transmet directement la commande fournie par l'appelant à `Runtime.exec`, sans liste de commandes permises. | `ift3913-t3-command-injection`, ligne 62 |
+| Injection SQL (CWE-89) | `lookupRecord` | Concatène le nom fourni par l'appelant dans la requête au lieu d'utiliser un paramètre SQL. | `ift3913-t3-sql-injection`, ligne 67 |
+| Désérialisation non fiable (CWE-502) | `restoreObject` | Lit un objet Java depuis un flux fourni par l'appelant sans filtre de types. | `ift3913-t3-deserialization`, ligne 77 |
+| Chiffrement ECB (CWE-327) | `encryptBlocks` | Utilise AES/ECB, qui révèle l'égalité des blocs de texte clair. | `ift3913-t3-ecb`, ligne 85 |
+| HTTP en clair (CWE-319) | `fetchConfiguration` | Récupère une configuration via HTTP, exposée à la lecture et à la modification en transit. | `ift3913-t3-cleartext-http`, ligne 91 |
 
 `Runtime.exec(String)` n'invoque pas de shell par défaut; le danger démontré est l'exécution d'un programme ou d'arguments contrôlés par l'appelant, et non une expansion shell implicite. Ces exemples sont pédagogiques et ne prétendent pas être des chemins exploitables dans l'application Tika normale.
 
