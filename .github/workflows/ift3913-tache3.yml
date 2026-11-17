@@ -6,15 +6,25 @@ on:
       - rafi
   pull_request:
   workflow_dispatch:
+    inputs:
+      baseline_sha:
+        description: Optional commit SHA to compare with (for validation)
+        required: false
+        type: string
+      rickroll_probe:
+        description: Run an ephemeral failing JUnit test to validate the Rickroll action
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: read
 
 jobs:
-  security-and-tests:
-    name: Java 17 tests and Semgrep regression gate
+  case-study-tests:
+    name: Java 17 case-study tests
     runs-on: ubuntu-latest
-    timeout-minutes: 60
+    timeout-minutes: 45
 
     steps:
       - name: Check out Tika
@@ -37,47 +47,150 @@ jobs:
           '-Dtest=org.apache.tika.digest.InputStreamDigester*'
           '-Dsurefire.failIfNoSpecifiedTests=false' test
 
-      - name: Rickroll if a case-study test fails
+      - name: Check whether a JUnit test failed
+        id: test_reports
         if: failure() && steps.junit.outcome == 'failure'
+        run: >-
+          python3 scripts/ift3913_tache3/find_failed_tests.py
+          tika-core/target/surefire-reports
+
+      - name: Rickroll only after a failed JUnit test
+        if: failure() && steps.test_reports.outputs.failed == 'true'
         uses: ./.github/actions/tache3-rickroll
 
-      - name: Set up Python
+      - name: Upload test and JaCoCo reports
         if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tache3-test-reports
+          if-no-files-found: warn
+          path: |
+            tika-core/target/surefire-reports/
+            tika-core/target/site/jacoco/
+
+  security-regression:
+    name: Semgrep commit comparison
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out Tika with history
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
         uses: actions/setup-python@v6
         with:
           python-version: '3.11'
 
       - name: Install Semgrep Community Edition
-        if: always()
         run: python -m pip install --disable-pip-version-check 'semgrep==1.185.0'
 
-      - name: Validate seven Semgrep rules
-        if: always()
+      - name: Validate local Semgrep rules
         run: semgrep scan --validate --config .semgrep/tache3.yml
 
-      - name: Scan Tika core and save the current report
-        if: always()
+      - name: Select the comparison commit
+        shell: bash
+        env:
+          MANUAL_BASE: ${{ inputs.baseline_sha }}
+          PR_BASE: ${{ github.event.pull_request.base.sha }}
+          PUSH_BASE: ${{ github.event.before }}
+        run: |
+          if [ -n "$MANUAL_BASE" ]; then
+            base="$MANUAL_BASE"
+          elif [ -n "$PR_BASE" ]; then
+            base="$PR_BASE"
+          elif [ -n "$PUSH_BASE" ] && [[ ! "$PUSH_BASE" =~ ^0+$ ]]; then
+            base="$PUSH_BASE"
+          else
+            base="$(git rev-parse HEAD^)"
+          fi
+          git cat-file -e "${base}^{commit}"
+          echo "BASE_SHA=$base" >> "$GITHUB_ENV"
+          echo "Comparing Semgrep findings with $base"
+
+      - name: Fail on new Semgrep findings
         run: |
           mkdir -p tache3-results/ci
-          semgrep scan --config .semgrep/tache3.yml --metrics=off \
-            --no-git-ignore --json --output tache3-results/ci/current.json \
+          semgrep scan --config p/java --config p/security-audit \
+            --config .semgrep/tache3.yml --metrics=off \
+            --baseline-commit "$BASE_SHA" --error --json \
+            --output tache3-results/ci/current.json \
             tika-core/src/main/java
 
-      - name: Fail on findings absent from the baseline
-        if: always()
-        run: >-
-          python scripts/ift3913_tache3/compare_semgrep.py
-          tache3-results/baseline/custom.json
-          tache3-results/ci/current.json
-
-      - name: Upload test and Semgrep reports
+      - name: Upload Semgrep comparison report
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: tache3-reports
+          name: tache3-semgrep-report
           if-no-files-found: warn
-          path: |
-            tika-core/target/surefire-reports/
-            tika-core/target/site/jacoco/
-            tache3-results/ci/current.json
-            tache3-results/baseline/custom.json
+          path: tache3-results/ci/current.json
+
+  rickroll-probe:
+    name: Validate Rickroll with a failing JUnit test
+    if: github.event_name == 'workflow_dispatch' && inputs.rickroll_probe
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: Check out Tika
+        uses: actions/checkout@v7
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Install reactor dependencies
+        run: ./mvnw -B -ntp -pl tika-core -am -DskipTests install
+
+      - name: Create a temporary failing JUnit test on the runner
+        run: |
+          cat > tika-core/src/test/java/org/apache/tika/digest/Tache3RickrollProbeTest.java <<'JAVA'
+          package org.apache.tika.digest;
+          import static org.junit.jupiter.api.Assertions.fail;
+          import org.junit.jupiter.api.Test;
+          class Tache3RickrollProbeTest {
+              @Test void demonstratesFailure() { fail("Tache 3 Rickroll probe"); }
+          }
+          JAVA
+
+      - name: Run the deliberately failing JUnit test
+        id: junit_probe
+        continue-on-error: true
+        run: >-
+          ./mvnw -B -ntp -pl tika-core -am
+          '-Dtest=org.apache.tika.digest.Tache3RickrollProbeTest'
+          '-Dsurefire.failIfNoSpecifiedTests=false' test
+
+      - name: Inspect the failed Surefire report
+        id: probe_reports
+        run: >-
+          python3 scripts/ift3913_tache3/find_failed_tests.py
+          tika-core/target/surefire-reports
+
+      - name: Invoke the reusable Rickroll action for the failed test
+        id: rickroll
+        if: steps.junit_probe.outcome == 'failure' && steps.probe_reports.outputs.failed == 'true'
+        uses: ./.github/actions/tache3-rickroll
+
+      - name: Assert that the Rickroll was triggered by the test failure
+        env:
+          JUNIT_OUTCOME: ${{ steps.junit_probe.outcome }}
+          REPORT_FAILED: ${{ steps.probe_reports.outputs.failed }}
+          RICKROLL_OUTCOME: ${{ steps.rickroll.outcome }}
+        run: |
+          test "$JUNIT_OUTCOME" = failure
+          test "$REPORT_FAILED" = true
+          test "$RICKROLL_OUTCOME" = success
+
+      - name: Upload the probe's test report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tache3-rickroll-probe-report
+          if-no-files-found: warn
+          path: tika-core/target/surefire-reports/
