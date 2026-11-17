@@ -2,7 +2,7 @@
 
 **Équipe :** Rafi Dahoui (`doctor277`) et Alexandre Soglo Booh Louha (`Soglo3006`).
 
-Ce travail est sur la branche `rafi` du [fork Tika](https://github.com/doctor277/tika/tree/rafi). La branche part du travail de la tâche 2, au commit `88c415786765056543b08d6e265624025ee95fed`. Aucun changement n'est destiné à la branche `main`. La [consigne 2026](https://github.com/umontreal-diro/IFT3913/blob/2026/tache3/readme.md) nomme Tika comme cas d'étude dans le plan de cours, mais emploie encore « graphhopper » dans la phrase sur le rickroll. Nous avons appliqué cette phrase aux tests du cas d'étude 2026, donc à Tika.
+Ce travail est sur la branche `rafi` du [fork Tika](https://github.com/doctor277/tika/tree/rafi). La branche part du travail de la tâche 2, au commit `88c415786765056543b08d6e265624025ee95fed`. Aucun changement n'est destiné à la branche `main`. La [consigne 2026](https://github.com/umontreal-diro/IFT3913/blob/2026/tache3/readme.md) demande de déclencher le rickroll lorsqu'un test du cas d'étude échoue; le cas d'étude 2026 est Tika.
 
 ## Porte de sécurité dans GitHub Actions
 
