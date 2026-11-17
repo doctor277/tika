@@ -1,0 +1,83 @@
+name: IFT3913 Tache 3 - Semgrep regression gate
+
+on:
+  push:
+    branches:
+      - rafi
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  security-and-tests:
+    name: Java 17 tests and Semgrep regression gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+
+    steps:
+      - name: Check out Tika
+        uses: actions/checkout@v7
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v6
+        with:
+          distribution: temurin
+          java-version: '17'
+          cache: maven
+
+      - name: Install reactor dependencies
+        run: ./mvnw -B -ntp -pl tika-core -am -DskipTests install
+
+      - name: Run case-study tests and generate JaCoCo report
+        id: junit
+        run: >-
+          ./mvnw -B -ntp -pl tika-core -am
+          '-Dtest=org.apache.tika.digest.InputStreamDigester*'
+          '-Dsurefire.failIfNoSpecifiedTests=false' test
+
+      - name: Rickroll if a case-study test fails
+        if: failure() && steps.junit.outcome == 'failure'
+        uses: ./.github/actions/tache3-rickroll
+
+      - name: Set up Python
+        if: always()
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+
+      - name: Install Semgrep Community Edition
+        if: always()
+        run: python -m pip install --disable-pip-version-check 'semgrep==1.185.0'
+
+      - name: Validate seven Semgrep rules
+        if: always()
+        run: semgrep scan --validate --config .semgrep/tache3.yml
+
+      - name: Scan Tika core and save the current report
+        if: always()
+        run: |
+          mkdir -p tache3-results/ci
+          semgrep scan --config .semgrep/tache3.yml --metrics=off \
+            --no-git-ignore --json --output tache3-results/ci/current.json \
+            tika-core/src/main/java
+
+      - name: Fail on findings absent from the baseline
+        if: always()
+        run: >-
+          python scripts/ift3913_tache3/compare_semgrep.py
+          tache3-results/baseline/custom.json
+          tache3-results/ci/current.json
+
+      - name: Upload test and Semgrep reports
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: tache3-reports
+          if-no-files-found: warn
+          path: |
+            tika-core/target/surefire-reports/
+            tika-core/target/site/jacoco/
+            tache3-results/ci/current.json
+            tache3-results/baseline/custom.json

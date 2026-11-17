@@ -1,0 +1,51 @@
+rules:
+  - id: ift3913-t3-xxe
+    languages: [java]
+    severity: ERROR
+    message: An XML parser explicitly permits DOCTYPE declarations (CWE-611).
+    pattern: $FACTORY.setFeature("http://apache.org/xml/features/disallow-doctype-decl", false)
+
+  - id: ift3913-t3-path-traversal
+    languages: [java]
+    severity: ERROR
+    message: A caller-controlled name is resolved beneath a root without containment validation (CWE-22).
+    pattern: Files.readString($ROOT.resolve($NAME))
+
+  - id: ift3913-t3-command-injection
+    languages: [java]
+    severity: ERROR
+    message: A caller-supplied command is executed without an allowlist (CWE-78).
+    patterns:
+      - pattern-inside: |
+          $RET $METHOD(String $COMMAND) {
+            ...
+          }
+      - pattern: Runtime.getRuntime().exec($COMMAND)
+
+  - id: ift3913-t3-sql-injection
+    languages: [java]
+    severity: ERROR
+    message: A SQL query is assembled with concatenation before execution (CWE-89).
+    pattern-regex: '(?s)executeQuery\s*\(\s*"[^"\r\n]*"\s*\+\s*[A-Za-z_][A-Za-z0-9_]*\s*\+'
+
+  - id: ift3913-t3-deserialization
+    languages: [java]
+    severity: ERROR
+    message: ObjectInputStream deserializes data without a type filter (CWE-502).
+    patterns:
+      - pattern-inside: |
+          ObjectInputStream $STREAM = ...;
+          ...
+      - pattern: $STREAM.readObject()
+
+  - id: ift3913-t3-ecb
+    languages: [java]
+    severity: ERROR
+    message: AES-ECB exposes equal plaintext blocks (CWE-327).
+    pattern: Cipher.getInstance("AES/ECB/PKCS5Padding")
+
+  - id: ift3913-t3-cleartext-http
+    languages: [java]
+    severity: ERROR
+    message: HTTP downloads can be intercepted or altered in transit (CWE-319).
+    pattern: new URL("http://" + $HOST + "/config")

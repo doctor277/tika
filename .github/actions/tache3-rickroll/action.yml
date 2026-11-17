@@ -1,0 +1,13 @@
+name: Rickroll on a failed case-study test
+description: Add a Rick Astley link to the failed test run
+runs:
+  using: composite
+  steps:
+    - name: Never gonna give you up
+      shell: bash
+      run: |
+        echo '::notice title=Test failed::Never gonna give you up: https://www.youtube.com/watch?v=dQw4w9WgXcQ'
+        {
+          echo '### Test failed — a musical break'
+          echo '[Never Gonna Give You Up](https://www.youtube.com/watch?v=dQw4w9WgXcQ)'
+        } >> "$GITHUB_STEP_SUMMARY"
