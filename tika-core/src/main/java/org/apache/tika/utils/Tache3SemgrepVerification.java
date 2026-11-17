@@ -14,16 +14,18 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package org.apache.tika.digest;
+package org.apache.tika.utils;
 
-import static org.junit.jupiter.api.Assertions.fail;
+import java.security.GeneralSecurityException;
+import javax.crypto.Cipher;
 
-import org.junit.jupiter.api.Test;
+/** Temporary CI probe, removed after checking the Semgrep regression gate. */
+public final class Tache3SemgrepVerification {
 
-/** Temporary CI probe. Removed after verifying the Rickroll action. */
-class InputStreamDigesterTache3RickrollVerificationTest {
-    @Test
-    void deliberatelyFailsForCiVerification() {
-        fail("Verify that the reusable Rickroll action runs after a failed JUnit test");
+    private Tache3SemgrepVerification() {
+    }
+
+    public static Cipher deliberatelyInsecureCipher() throws GeneralSecurityException {
+        return Cipher.getInstance("AES/ECB/PKCS5Padding");
     }
 }
